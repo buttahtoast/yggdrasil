@@ -1,0 +1,41 @@
+---
+# This is a simple docker-compose for yggdrasil
+version: "3"
+services:
+  envoy:
+    image: "envoyproxy/envoy:${ENVOY_IMAGE_TAG}"
+    ports:
+      - 10000:10000
+    volumes:
+      - ./config/envoy.yaml:/etc/envoy/envoy.yaml
+      - ./logs/envoy:/var/log/envoy
+    working_dir: /var/log/envoy/
+    environment:
+    - ENVOY_UID=0 
+    command:
+      - "--service-node envoy-node" 
+      - "--service-cluster" 
+      - "envoy-node" 
+      - "--config-path" 
+      - "/etc/envoy/envoy.yaml"
+    networks:
+      - intern
+  yggdrasil:
+    image: "quay.io/uswitch/yggdrasil:${YGGDRASIL_IMAGE_TAG}"
+    volumes:
+      - ./config/:/config
+    command:
+      - "--config"
+      - "/config/config.yaml"
+      - "--debug"
+    networks:
+      - dc
+      - intern
+networks:
+  dc:
+    driver_opts:
+       com.docker.network.bridge.enable_ip_masquerade: 'false'
+    ipam:
+      config:
+        - subnet: "10.125.1.0/25"
+  intern:
